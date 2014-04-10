@@ -1,13 +1,6 @@
 {
 {-# OPTIONS -w  #-}
-module Lexer
-( Alex(..)
-, AlexPosn(..)
-, Token(..)
-, alexMonadScan
-, runAlex
-, alexGetInput
-) where
+module Lexer where
 
 import Prelude hiding (lex)
 

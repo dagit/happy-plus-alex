@@ -53,8 +53,23 @@ Factor
 
 lexwrap :: (Token -> Alex a) -> Alex a
 lexwrap cont = do
-  t <- alexMonadScan
+  t <- alexMonadScan'
   cont t
+
+-- We rewrite alexMonadScan' to return the position when lexing fails (the
+-- default implementation just returns an error message).
+alexMonadScan' = do
+  inp <- alexGetInput
+  sc <- alexGetStartCode
+  case alexScan inp sc of
+    AlexEOF -> alexEOF
+    AlexError (pos, _, _, _) -> alexError (show pos)
+    AlexSkip  inp' len -> do
+        alexSetInput inp'
+        alexMonadScan'
+    AlexToken inp' len action -> do
+        alexSetInput inp'
+        action (ignorePendingBytes inp) len
 
 getPosn :: Alex (Int,Int)
 getPosn = do

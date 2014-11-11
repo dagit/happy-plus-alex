@@ -1,15 +1,14 @@
 module Main(main) where
 
 import Language ( eval )
-import Parser   ( parseExp )
+import Parser ( parseExp )
+import System.Environment ( getArgs )
 
 main :: IO ()
-main = repl
-
-repl :: IO a
-repl = do
-  cs <- getContents
-  case parseExp cs of
-    Left  e -> putStrLn ("error: " ++ e) >> repl
-    Right e -> print (eval [] e) >> repl
-    
+main = do
+  args <- getArgs
+  result <- case args of
+              []  -> fmap (parseExp "<stdin>") getContents
+              [f] -> fmap (parseExp f) (readFile f)
+              _   -> error "expected max. 1 argument"
+  either putStrLn (print . eval []) result

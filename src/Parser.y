@@ -13,12 +13,10 @@ import Lexer
 
 %name parse
 %tokentype { Token }
-%monad { Alex }
-%lexer { lexwrap } { Token _ TokenEOF }
--- Without this we get a type error
-%error { happyError }
+%monad { Either String }
+%error { errorP }
 
-%token 
+%token
       let             { Token _ TokenLet }
       in              { Token _ TokenIn }
       int             { Token _ (TokenInt $$) }
@@ -44,19 +42,22 @@ Term  : Term '*' Factor         { Times $1 $3 }
       | Term '/' Factor         { Div $1 $3 }
       | Factor                  { Factor $1 }
 
-Factor        
+Factor
       : int                     { Int $1 }
       | var                     { Var $1 }
       | '(' Exp ')'             { Brack $2 }
 
 {
-lexwrap :: (Token -> Alex a) -> Alex a
-lexwrap = (alexMonadScan' >>=)
-
-happyError :: Token -> Alex a
-happyError (Token p t) =
-  alexError' p ("parse error at token '" ++ unLex t ++ "'")
+errorP :: [Token] -> Either String a
+errorP [] = Left "unexpected end of file"
+errorP (Token (AlexPn _ l c) t:_) = Left $
+  show l ++ ":" ++
+  show c ++ ": unexpected " ++
+  unLex t
 
 parseExp :: FilePath -> String -> Either String Exp
-parseExp = runAlex' parse
+parseExp filename contents =
+  case parse (alexScanTokens contents) of
+    Left e -> Left (filename ++ ":" ++ e)
+    Right e -> Right e
 }
